@@ -1,8 +1,9 @@
+import 'package:fintech/core/controller/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:get/get.dart';
-import '../core/controller/auth_controller.dart';
+
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -65,21 +66,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                "Register",
-                style: TextStyle(
-                  fontSize: 28.sp,
-                  fontWeight: FontWeight.bold,
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Register",
+                  style: TextStyle(
+                    fontSize: 28.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               SizedBox(height: 8.h),
-              Text(
-                "Fill in the details to get started",
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: Colors.grey,
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Fill in the details to get started",
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    color: Colors.grey,
+                  ),
                 ),
               ),
               SizedBox(height: 30.h),

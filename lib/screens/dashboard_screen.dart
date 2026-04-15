@@ -1,14 +1,72 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/controller/theme_controller.dart';
 import '../core/controller/dashboard_controller.dart';
+import '../core/controller/auth_controller.dart';
 import '../core/router/app_router.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
+
+  void _showUpdateDialog({
+    required BuildContext context,
+    required String title,
+    required String field,
+    required double currentValue,
+    bool isGold = false,
+  }) {
+    final controller = TextEditingController(text: currentValue.toString());
+    final isDark = ThemeController.to.isDarkMode;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1F1F1F) : Colors.white,
+        title: Text(title, style: TextStyle(color: isDark ? Colors.white : Colors.black)),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black),
+          decoration: InputDecoration(
+            hintText: "Enter amount",
+            hintStyle: TextStyle(color: Colors.grey),
+            suffixText: isGold ? "grams" : "₹",
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              double? newValue = double.tryParse(controller.text);
+              if (newValue != null) {
+                if (isGold) {
+                  // Assuming gold price is ₹6000 per gram for calculation
+                  AuthController.to.updateUserData({
+                    'goldGrams': newValue,
+                    'goldValue': newValue * 6000,
+                  });
+                } else {
+                  AuthController.to.updateUserData({
+                    field: newValue,
+                  });
+                }
+                Navigator.pop(context);
+                Get.snackbar("Success", "$title updated successfully");
+              }
+            },
+            child: const Text("Update"),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +91,7 @@ class DashboardScreen extends StatelessWidget {
           backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF7F8FC),
           elevation: 0,
           title: Text(
-            "Dashboard",
+            "FinTech",
             style: TextStyle(
               fontSize: 22.sp,
               fontWeight: FontWeight.bold,
@@ -64,107 +122,136 @@ class DashboardScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                /// Account Balance Card
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(20.w),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFF1E3A8A),
-                        Color(0xFF2563EB),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(20.r),
+                /// Account Balance Card (Clickable to Update)
+                GestureDetector(
+                  onTap: () => _showUpdateDialog(
+                    context: context,
+                    title: "Update Balance",
+                    field: "balance",
+                    currentValue: data.balance,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Account Balance",
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: Colors.white70,
-                        ),
-                      ),
-                      SizedBox(height: 10.h),
-                      Text(
-                        "₹ ${data.balance.toStringAsFixed(2)}",
-                        style: TextStyle(
-                          fontSize: 30.sp,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(height: 20.h),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          balanceInfo("Income", "₹ ${data.income}"),
-                          balanceInfo("Expense", "₹ ${data.expense}"),
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(20.w),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF1E3A8A),
+                          Color(0xFF2563EB),
                         ],
                       ),
-                    ],
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Account Balance",
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                color: Colors.white70,
+                              ),
+                            ),
+                            Icon(Icons.edit, color: Colors.white54, size: 16.sp),
+                          ],
+                        ),
+                        SizedBox(height: 10.h),
+                        Text(
+                          "₹ ${data.balance.toStringAsFixed(2)}",
+                          style: TextStyle(
+                            fontSize: 30.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(height: 20.h),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            balanceInfo("Income", "₹ ${data.income}"),
+                            balanceInfo("Expense", "₹ ${data.expense}"),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
                 SizedBox(height: 16.h),
 
-                /// Gold Balance Card
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(18.w),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.grey[900] : Colors.white,
-                    borderRadius: BorderRadius.circular(18.r),
+                /// Gold Balance Card (Clickable to Update)
+                GestureDetector(
+                  onTap: () => _showUpdateDialog(
+                    context: context,
+                    title: "Update Gold Grams",
+                    field: "goldGrams",
+                    currentValue: data.goldGrams,
+                    isGold: true,
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 55.w,
-                        height: 55.h,
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(14.r),
-                        ),
-                        child: Icon(
-                          Icons.workspace_premium,
-                          color: Colors.orange,
-                          size: 28.sp,
-                        ),
-                      ),
-                      SizedBox(width: 14.w),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Gold Balance",
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              color: isDark ? Colors.grey[400] : Colors.grey,
-                            ),
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(18.w),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.grey[900] : Colors.white,
+                      borderRadius: BorderRadius.circular(18.r),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 55.w,
+                          height: 55.h,
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(14.r),
                           ),
-                          SizedBox(height: 4.h),
-                          Text(
-                            "${data.goldGrams} Grams",
-                            style: TextStyle(
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : Colors.black,
-                            ),
+                          child: Icon(
+                            Icons.workspace_premium,
+                            color: Colors.orange,
+                            size: 28.sp,
                           ),
-                        ],
-                      ),
-                      const Spacer(),
-                      Text(
-                        "₹ ${data.goldValue}",
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange.shade700,
                         ),
-                      ),
-                    ],
+                        SizedBox(width: 14.w),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Gold Balance",
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                color: isDark ? Colors.grey[400] : Colors.grey,
+                              ),
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              "${data.goldGrams.toStringAsFixed(3)} Grams",
+                              style: TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              "₹ ${data.goldValue.toStringAsFixed(0)}",
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange.shade700,
+                              ),
+                            ),
+                            Icon(Icons.edit, color: Colors.grey, size: 14.sp),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -182,23 +269,41 @@ class DashboardScreen extends StatelessWidget {
                 SizedBox(height: 12.h),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: data.quickActions.map((action) {
-                    IconData iconData;
-                    switch (action.icon) {
-                      case "add_circle_outline":
-                        iconData = Icons.add_circle_outline;
-                        break;
-                      case "pie_chart_outline":
-                        iconData = Icons.pie_chart_outline;
-                        break;
-                      case "token":
-                        iconData = Icons.token;
-                        break;
-                      default:
-                        iconData = Icons.help_outline;
-                    }
-                    return quickActionCard(iconData, action.title, isDark);
-                  }).toList(),
+                  children: [
+                    quickActionCard(
+                      Icons.add_circle_outline, 
+                      "Deposit", 
+                      isDark,
+                      onTap: () => _showUpdateDialog(
+                        context: context, 
+                        title: "Add Deposit", 
+                        field: "balance", 
+                        currentValue: data.balance,
+                      ),
+                    ),
+                    quickActionCard(
+                      Icons.pie_chart_outline, 
+                      "Income", 
+                      isDark,
+                      onTap: () => _showUpdateDialog(
+                        context: context, 
+                        title: "Update Income", 
+                        field: "income", 
+                        currentValue: data.income,
+                      ),
+                    ),
+                    quickActionCard(
+                      Icons.account_balance_wallet, 
+                      "Expense", 
+                      isDark,
+                      onTap: () => _showUpdateDialog(
+                        context: context, 
+                        title: "Update Expense", 
+                        field: "expense", 
+                        currentValue: data.expense,
+                      ),
+                    ),
+                  ],
                 ),
 
                 SizedBox(height: 22.h),
@@ -315,7 +420,14 @@ class DashboardScreen extends StatelessWidget {
                             ),
                             GestureDetector(
                               onTap: () {
-                                Get.snackbar("Copied", "Referral code copied to clipboard");
+                                Clipboard.setData(ClipboardData(text: data.referralCode));
+                                Get.snackbar(
+                                  "Copied", 
+                                  "Referral code copied to clipboard",
+                                  snackPosition: SnackPosition.BOTTOM,
+                                  backgroundColor: Colors.green.withOpacity(0.8),
+                                  colorText: Colors.white,
+                                );
                               },
                               child: Icon(
                                 Icons.copy,
@@ -397,31 +509,35 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget quickActionCard(IconData icon, String title, bool isDark) {
-    return Container(
-      width: 105.w,
-      padding: EdgeInsets.symmetric(vertical: 18.h),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[900] : Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            size: 28.sp,
-            color: const Color(0xFF2563EB),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w500,
-              color: isDark ? Colors.white : Colors.black,
+  Widget quickActionCard(IconData icon, String title, bool isDark, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16.r),
+      child: Container(
+        width: 105.w,
+        padding: EdgeInsets.symmetric(vertical: 18.h),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.grey[900] : Colors.white,
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 28.sp,
+              color: const Color(0xFF2563EB),
             ),
-          ),
-        ],
+            SizedBox(height: 8.h),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

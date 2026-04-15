@@ -1,16 +1,14 @@
-import 'package:flutter/material.dart';
+import 'package:fintech/core/controller/auth_controller.dart';
+import 'package:fintech/screens/dashboard_screen.dart';
+import 'package:fintech/screens/forgot_password_screen.dart';
+import 'package:fintech/screens/login_screen.dart';
+import 'package:fintech/screens/onboarding_screen.dart';
+import 'package:fintech/screens/otp_screen.dart';
+import 'package:fintech/screens/profile_screen.dart';
+import 'package:fintech/screens/register_screen.dart';
+import 'package:fintech/screens/splash_screen.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
-import '../../screens/dashboard_screen.dart';
-import '../../screens/login_screen.dart';
-import '../../screens/splash_screen.dart';
-import '../../screens/register_screen.dart';
-import '../../screens/forgot_password_screen.dart';
-import '../../screens/otp_screen.dart';
-
-import '../../screens/onboarding_screen.dart';
-import '../../screens/profile_screen.dart';
-import '../controller/auth_controller.dart';
 
 class AppRouteNames {
   static const String splash = 'splash';
@@ -51,7 +49,7 @@ class AppRouter {
       }
 
       // 2. If logged in and on Auth screens -> Redirect to Dashboard
-      final authScreens = ['/login', '/register', '/onboarding'];
+      final authScreens = ['/login', '/register', '/onboarding', '/otp'];
       if (isLoggedIn && authScreens.contains(state.matchedLocation)) {
         return '/dashboard';
       }

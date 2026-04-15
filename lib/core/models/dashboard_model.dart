@@ -1,3 +1,5 @@
+
+
 class DashboardData {
   final double balance;
   final double income;
@@ -5,6 +7,8 @@ class DashboardData {
   final double goldGrams;
   final double goldValue;
   final String referralCode;
+  final DateTime? createdAt;
+  final Map<String, dynamic> settings;
   final List<QuickAction> quickActions;
   final List<SpecialOffer> offers;
   final List<Game> games;
@@ -18,6 +22,8 @@ class DashboardData {
     required this.goldGrams,
     required this.goldValue,
     required this.referralCode,
+    this.createdAt,
+    this.settings = const {},
     required this.quickActions,
     required this.offers,
     required this.games,

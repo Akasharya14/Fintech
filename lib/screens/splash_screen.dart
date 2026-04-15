@@ -1,8 +1,9 @@
+import 'package:fintech/core/controller/auth_controller.dart';
+import 'package:fintech/core/router/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import '../core/controller/auth_controller.dart';
-import '../core/router/app_router.dart';
+
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -50,7 +51,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             SizedBox(height: 20.h),
             Text(
-              "FinGold",
+              "FinTech",
               style: TextStyle(
                 fontSize: 30.sp,
                 fontWeight: FontWeight.bold,

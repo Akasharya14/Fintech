@@ -6,13 +6,20 @@ import 'core/router/app_router.dart';
 import 'core/controller/auth_controller.dart';
 import 'core/controller/theme_controller.dart';
 import 'core/controller/dashboard_controller.dart';
+import 'core/services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  
+  // Initialize Services
+  Get.put(AuthService());
+  
+  // Initialize Controllers
   await Get.putAsync(() => AuthController().init());
   await Get.putAsync(() => ThemeController().init());
   Get.put(DashboardController());
+
   runApp(const MyApp());
 }
 

@@ -1,13 +1,30 @@
+import 'package:fintech/core/controller/auth_controller.dart';
+import 'package:fintech/core/controller/theme_controller.dart';
+import 'package:fintech/core/router/app_router.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:get/get.dart';
-import '../core/controller/auth_controller.dart';
-import '../core/controller/theme_controller.dart';
-import '../core/router/app_router.dart';
+import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
+
+  String _getInitials(String name) {
+    if (name.isEmpty) return "U";
+    List<String> parts = name.trim().split(" ");
+    String initials = "";
+    if (parts.isNotEmpty && parts[0].isNotEmpty) {
+      initials += parts[0][0].toUpperCase();
+    }
+    if (parts.length > 1 && parts[parts.length - 1].isNotEmpty) {
+      initials += parts[parts.length - 1][0].toUpperCase();
+    }
+    return initials.isEmpty ? "U" : initials;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +36,16 @@ class ProfileScreen extends StatelessWidget {
       final userData = authController.userData;
       final userName = userData['name'] ?? "User";
       final userEmail = userData['email'] ?? authController.user?.email ?? "";
-      final profilePic = userData['profilePic'] ?? "";
+      final userPhone = userData['phone'] ?? authController.user?.phoneNumber ?? "No Phone Number";
+      final settings = userData['settings'] ?? {};
+      final bool notificationsEnabled = settings['notifications'] ?? true;
+      final referralCode = userData['referralCode'] ?? "N/A";
+      
+      String joinedDate = "N/A";
+      if (userData['createdAt'] != null) {
+        DateTime dt = (userData['createdAt'] as Timestamp).toDate();
+        joinedDate = DateFormat('MMMM yyyy').format(dt);
+      }
 
       return Scaffold(
         backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF7F8FC),
@@ -50,50 +76,17 @@ class ProfileScreen extends StatelessWidget {
               Center(
                 child: Column(
                   children: [
-                    Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: 55.r,
-                          backgroundColor: isDark ? Colors.grey[800] : Colors.white,
-                          child: CircleAvatar(
-                            radius: 50.r,
-                            backgroundColor: Colors.grey[300],
-                            backgroundImage: profilePic.isNotEmpty
-                                ? NetworkImage(profilePic)
-                                : NetworkImage(
-                                    "https://ui-avatars.com/api/?name=$userName&background=1E3A8A&color=fff&size=256",
-                                  ) as ImageProvider,
-                          ),
+                    CircleAvatar(
+                      radius: 55.r,
+                      backgroundColor: const Color(0xFF1E3A8A),
+                      child: Text(
+                        _getInitials(userName),
+                        style: TextStyle(
+                          fontSize: 40.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
-                        Positioned(
-                          bottom: 0,
-                          right: 4.w,
-                          child: GestureDetector(
-                            onTap: () => authController.uploadProfileImage(),
-                            child: Container(
-                              padding: EdgeInsets.all(6.w),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF1E3A8A),
-                                shape: BoxShape.circle,
-                              ),
-                              child: authController.isLoading.value
-                                  ? SizedBox(
-                                      width: 16.sp,
-                                      height: 16.sp,
-                                      child: const CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : Icon(
-                                      Icons.camera_alt,
-                                      color: Colors.white,
-                                      size: 16.sp,
-                                    ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                     SizedBox(height: 16.h),
                     Text(
@@ -106,7 +99,24 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 4.h),
                     Text(
-                      userEmail,
+                      "Joined $joinedDate",
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    if (userEmail.isNotEmpty)
+                      Text(
+                        userEmail,
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: isDark ? Colors.grey[400] : Colors.grey.shade600,
+                        ),
+                      ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      userPhone,
                       style: TextStyle(
                         fontSize: 14.sp,
                         color: isDark ? Colors.grey[400] : Colors.grey.shade600,
@@ -123,9 +133,21 @@ class ProfileScreen extends StatelessWidget {
               SizedBox(height: 12.h),
               settingItem(
                 isDark: isDark,
-                icon: Icons.person_outline,
-                title: "Personal Information",
-                onTap: () {},
+                icon: Icons.qr_code_scanner,
+                title: "My Referral Code",
+                subtitle: referralCode,
+                onTap: () {
+                  if (referralCode != "N/A") {
+                    Clipboard.setData(ClipboardData(text: referralCode));
+                    Get.snackbar(
+                      "Copied", 
+                      "Referral code copied to clipboard",
+                      snackPosition: SnackPosition.BOTTOM,
+                      backgroundColor: Colors.green.withOpacity(0.7),
+                      colorText: Colors.white,
+                    );
+                  }
+                },
               ),
               settingItem(
                 isDark: isDark,
@@ -142,24 +164,11 @@ class ProfileScreen extends StatelessWidget {
 
               SizedBox(height: 24.h),
 
-              sectionHeader("Preferences", isDark),
-              SizedBox(height: 12.h),
-              settingItem(
-                isDark: isDark,
-                icon: Icons.notifications_none,
-                title: "Notifications",
-                trailing: Switch(
-                  value: true,
-                  onChanged: (v) {},
-                  activeColor: const Color(0xFF1E3A8A),
-                ),
-                onTap: () {},
-              ),
               settingItem(
                 isDark: isDark,
                 icon: Icons.language_outlined,
                 title: "Language",
-                subtitle: "English (US)",
+                subtitle: settings['language'] ?? "English",
                 onTap: () {},
               ),
               settingItem(
@@ -168,7 +177,12 @@ class ProfileScreen extends StatelessWidget {
                 title: "Dark Mode",
                 trailing: Switch(
                   value: themeController.isDarkMode,
-                  onChanged: (v) => themeController.toggleTheme(),
+                  onChanged: (v) {
+                    themeController.toggleTheme();
+                    authController.updateUserData({
+                      'settings.darkMode': v,
+                    });
+                  },
                   activeColor: const Color(0xFF1E3A8A),
                 ),
                 onTap: () => themeController.toggleTheme(),

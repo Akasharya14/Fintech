@@ -1,9 +1,10 @@
+import 'package:fintech/core/controller/auth_controller.dart';
+import 'package:fintech/core/router/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:get/get.dart';
-import '../core/controller/auth_controller.dart';
-import '../core/router/app_router.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,12 +17,15 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final phoneController = TextEditingController();
   bool _isLoading = false;
+  bool _isPhoneLogin = false;
 
   @override
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
+    phoneController.dispose();
     super.dispose();
   }
 
@@ -35,17 +39,54 @@ class _LoginScreenState extends State<LoginScreen> {
           emailController.text.trim(),
           passwordController.text.trim(),
         );
-        // AuthController handles the navigation via authStateChanges in AppRouter usually, 
-        // or we can navigate here if needed. 
-        // Based on AuthController implementation, it updates isLoggedIn.
       } catch (e) {
-        // Error is handled in AuthController with a snackbar
+        // Error is handled in AuthController
       } finally {
         if (mounted) {
           setState(() {
             _isLoading = false;
           });
         }
+      }
+    }
+  }
+
+  Future<void> _handlePhoneLogin() async {
+    String phone = phoneController.text.trim();
+    if (phone.isEmpty || (phone.length < 10)) {
+      Get.snackbar("Error", "Please enter a valid 10-digit phone number");
+      return;
+    }
+
+    // Automatically add +91 if country code is missing
+    if (!phone.startsWith('+')) {
+      if (phone.length == 10) {
+        phone = '+91$phone';
+      } else if (phone.length == 12 && phone.startsWith('91')) {
+        phone = '+$phone';
+      } else {
+         // If it's something else but doesn't have +, try to add +91 or just +
+         // For simplicity, if it's 10 digits, add +91.
+         phone = '+91$phone';
+      }
+    }
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      await AuthController.to.verifyPhoneNumber(phone);
+      if (mounted) {
+        context.pushNamed(AppRouteNames.otp);
+      }
+    } catch (e) {
+      // Error handled in AuthController
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -78,67 +119,98 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               SizedBox(height: 35.h),
 
-              TextFormField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  hintText: "Email",
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14.r),
-                    borderSide: BorderSide.none,
+              if (!_isPhoneLogin) ...[
+                TextFormField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    hintText: "Email",
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14.r),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  validator: (value) {
+                    if (!_isPhoneLogin && (value == null || value.isEmpty)) {
+                      return 'Please enter your email';
+                    }
+                    if (!_isPhoneLogin && !GetUtils.isEmail(value!)) {
+                      return 'Please enter a valid email';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16.h),
+                TextFormField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    hintText: "Password",
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14.r),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  validator: (value) {
+                    if (!_isPhoneLogin && (value == null || value.isEmpty)) {
+                      return 'Please enter your password';
+                    }
+                    return null;
+                  },
+                ),
+              ] else ...[
+                TextFormField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    hintText: "Phone Number",
+                    prefixText: "+91 ",
+                    prefixIcon: const Icon(Icons.phone_outlined),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14.r),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  if (!GetUtils.isEmail(value)) {
-                    return 'Please enter a valid email';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16.h),
+              ],
 
-              TextFormField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  hintText: "Password",
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14.r),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your password';
-                  }
-                  if (value.length < 6) {
-                    return 'Password must be at least 6 characters';
-                  }
-                  return null;
-                },
-              ),
               SizedBox(height: 10.h),
-
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () => context.pushNamed(AppRouteNames.forgotPassword),
+                  onPressed: () {
+                    setState(() {
+                      _isPhoneLogin = !_isPhoneLogin;
+                    });
+                  },
                   child: Text(
-                    "Forgot Password?",
+                    _isPhoneLogin ? "Use Email Login" : "Use Phone Login",
                     style: TextStyle(fontSize: 14.sp),
                   ),
                 ),
               ),
-              SizedBox(height: 10.h),
+
+              if (!_isPhoneLogin)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => context.pushNamed(AppRouteNames.forgotPassword),
+                    child: Text(
+                      "Forgot Password?",
+                      style: TextStyle(fontSize: 14.sp),
+                    ),
+                  ),
+                ),
+
+              SizedBox(height: 20.h),
 
               SizedBox(
                 width: double.infinity,
@@ -150,18 +222,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(14.r),
                     ),
                   ),
-                  onPressed: _isLoading ? null : _handleLogin,
+                  onPressed: _isLoading ? null : (_isPhoneLogin ? _handlePhoneLogin : _handleLogin),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : Text(
-                          "Login",
+                          _isPhoneLogin ? "Send OTP" : "Login",
                           style: TextStyle(fontSize: 16.sp, color: Colors.white),
                         ),
                 ),
               ),
 
               SizedBox(height: 20.h),
-
               Center(
                 child: TextButton(
                   onPressed: () => context.pushNamed(AppRouteNames.register),
